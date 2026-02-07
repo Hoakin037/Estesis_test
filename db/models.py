@@ -9,7 +9,7 @@ class Player(Base):
     __tablename__ = "players"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    nickname: Mapped[str] = mapped_column(String(length=200))
+    nickname: Mapped[str] = mapped_column(String(length=200), unique=True)
     password: Mapped[str] = mapped_column(String(32), nullable=False)
     in_game: Mapped[bool] = mapped_column(default=False)
 

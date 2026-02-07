@@ -9,4 +9,6 @@ class UserCreate(UserBase):
     password: str
     in_game: bool
 
+class UserGetByNick(UserBase):
+    nickname: str
  
