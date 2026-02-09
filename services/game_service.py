@@ -1,14 +1,11 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from schemas import GameBase, GameCreate, GameSetEndedTime
-from db import get_game_repository, GameRepository
-from core.security import get_settings, Settings
+from db import get_session
+from .game_logics import generate_full_board, shoot
+
 
 class GameService():
-    def __init__(self, rep: GameRepository, settings: Settings,session: AsyncSession):
-        self.rep = rep
-        self.settings = settings
-        self.session = session
+    
 
-        

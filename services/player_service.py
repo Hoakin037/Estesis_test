@@ -1,5 +1,7 @@
 from db import get_player_repository, get_session, PlayerRepository
 from schemas import PlayerBase, PlayerCreate, PlayerGetByNick
+from services import AuthService
+from storage.active_games_storage import GameStorage
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, Depends
@@ -17,14 +19,41 @@ class PlayerService():
             raise HTTPException(status_code=401, detail="Пользователь не найден!")
     
 
-    async def add_player(self, player: PlayerCreate):
+    async def add_player(self, player: PlayerCreate, auth_service: AuthService):
         if await self.rep.get_player_by_nickname(PlayerGetByNick(id=player.id, nickname=player.nickname), self.session) != None:
             raise HTTPException(status_code=409, detail="Пользователь с таким никнеймом уже существует!")
+        player.password = auth_service.hash_password(player.password)
+
         await self.rep.create_player(player, self.session)
        
     async def del_player(self, player: PlayerBase):
         await self.rep.del_player(player, self.session)
 
+    async def get_all_players(self):
+        results = self.rep.get_all_players(self.session)
+        if results == []:
+            raise HTTPException(status_code=404, detail="Еще нет зарегестрированных игроков.")
+        
+    async def get_free_players(self, game_storage: GameStorage):
+        all_players = self.get_all_players()
+
+        busy_player_ids = []
+
+        for game in game_storage.active_games.values():
+            busy_player_ids.add(game.player_1.player_id)
+            busy_player_ids.add(game.player_2.player_id)
+
+        free_players = [
+            {
+                "id": p.id,
+                "nickname": p.nickname,
+            }
+            for p in all_players
+            if p.id not in busy_player_ids
+        ]
+
+        return free_players
+        
 async def get_player_service(
     rep: PlayerRepository = Depends(get_player_repository),
     session: AsyncSession = Depends(get_session)

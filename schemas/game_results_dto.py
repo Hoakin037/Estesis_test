@@ -20,7 +20,9 @@ class GameRoom(GameBase):
     player_2: PlayerInGame
     boards: dict[int, list[list[str]]] = Field(default_factory=dict)
     current_player_turn: int = 0
-
+    created_at: datetime
+    ended_at: datetime | None = Field(default=None)
+    
 class ResultsBase(BaseModel):
     game_id: int
 

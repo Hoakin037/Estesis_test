@@ -14,3 +14,6 @@ class PlayerGetByNick(PlayerBase):
 class PlayerInGame(PlayerBase):
     nickname: str
     websocket: WebSocket
+
+class PlayerAuth(PlayerBase):
+    password: str
