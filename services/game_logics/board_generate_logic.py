@@ -1,6 +1,6 @@
 from random import choice, randint
 
-def can_place(board, row, col, size, direction):
+def can_place(board: list[list[int | str]], row: int, col: int, size: int, direction: str):
     for i in range(size):
         r,c = row, col
         if direction == "H" : c += i # Горизонтально
@@ -19,7 +19,7 @@ def can_place(board, row, col, size, direction):
                         return False
     return True
 
-def place_ship(board, size):
+def place_ship(board: list[list[int | str]], size: int):
     placed = False
 
     while not placed:
@@ -40,4 +40,3 @@ def generate_full_board():
     for ship_size in ships:
         place_ship(board, ship_size)
     return board
-    
