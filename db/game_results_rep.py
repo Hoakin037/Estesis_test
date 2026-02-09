@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import Depends, HTTPException
 
-from .models import Players, Games, Results
+from .models import Games, Results
 from schemas import GameBase, GameCreate, ResultsBase, ResultsCreate, GameSetEndedTime
 
 class GameRepository():
@@ -44,11 +44,19 @@ class ResultsRepository():
         return None
 
     async def get_all_results(self, session: AsyncSession):
-        try:
-            exicting_results = session.execute(select(Results))
-            exicting_results = exicting_results.scalars().all()
-            if exicting_results != None:
-                return exicting_results
-            raise HTTPException(status_code=404, detail="Еще нет завершенных игр.")
-        except HTTPException:
-            raise                              
+        exicting_results = session.execute(select(Results))
+        exicting_results = exicting_results.scalars().all()
+        if exicting_results != None:
+            return exicting_results
+        raise HTTPException(status_code=404, detail="Еще нет завершенных игр.")
+                     
+
+    async def create_results(self, results: ResultsCreate, session: AsyncSession):
+        session.add(results)
+        session.commit()
+
+async def get_game_repository():
+    return GameRepository()
+
+async def get_results_repository():
+    return ResultsRepository()

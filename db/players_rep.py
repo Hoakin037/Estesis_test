@@ -46,5 +46,5 @@ class PlayerRepository():
         result = await session.execute(result)
         return result.scalars().all()
 
-def get_player_repository():
+async def get_player_repository():
     return PlayerRepository()
