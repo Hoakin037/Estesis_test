@@ -1,5 +1,5 @@
 from db import Player, get_user_rep, get_session
-from schemas.user_dto import UserBase, UserCreate, UserGetByNick
+from schemas.player_dto import UserBase, UserCreate, UserGetByNick
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
@@ -21,7 +21,7 @@ class UserService():
     async def add_user(self, user: UserCreate):
         try:
             if await self.rep.get_user_by_nickname(UserGetByNick(id=user.id, nickname=user.nickname)) != None:
-                raise HTTPException(status_code=409, detail="Пользователь с таким никнеймом !")
+                raise HTTPException(status_code=409, detail="Пользователь с таким никнеймом уже существует!")
             await self.rep.create_user(user)
         except Exception as e:
             raise e
