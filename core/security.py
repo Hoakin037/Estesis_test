@@ -15,10 +15,17 @@ class Settings(BaseSettings):
     DB_PORT: int
     DB_NAME: str
 
+    # хеширование паролей
+    ALGORITHM: str
+
     @property
     def database_url_asyncpg(self):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
+    @property
+    def get_hash_algorithm(self):
+        return self.ALGORITHM
+    
     model_config = SettingsConfigDict(
         env_file=ENV_PATH,
         env_file_encoding="utf-8",
