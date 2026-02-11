@@ -1,5 +1,6 @@
 from fastapi import WebSocket
 
+
 async def shoot(board: list[list[int | str]], websocket: WebSocket, x: int, y: int, current_turn: int):
     cell = board[x][y]
 
@@ -8,7 +9,7 @@ async def shoot(board: list[list[int | str]], websocket: WebSocket, x: int, y: i
             "type": "error",
             "message": "Вы уже делали ход по этой клетке!"
         })
-        return board, current_turn  
+        return board, current_turn
 
     if cell in [1, 2, 3, 4]:
         board[x][y] = "x"
@@ -21,11 +22,12 @@ async def shoot(board: list[list[int | str]], websocket: WebSocket, x: int, y: i
     # Промах
     board[x][y] = "*"
     await websocket.send_json({
-        "type": "miss",  
+        "type": "miss",
         "message": f"Промах по клетке ({x},{y})!"
     })
     new_turn = 2 if current_turn == 1 else 1
     return board, new_turn
+
 
 def check_ships(board: list) -> bool:
     target = {1, 2, 3, 4}
@@ -38,6 +40,5 @@ def check_ships(board: list) -> bool:
                 break
         if found:
             break
-        
-    return found
 
+    return found

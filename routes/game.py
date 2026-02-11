@@ -9,10 +9,11 @@ from sockets.connect_manager import ConnectionManager
 connection_manager = ConnectionManager()
 games = APIRouter(prefix="/games")
 
+
 @games.get("")
 async def get_active_games(
-    game_storage: GameStorage=Depends(get_game_storage)
-    ):
+    game_storage: GameStorage = Depends(get_game_storage)
+):
     active_games = await game_storage.get_all_games()
     if active_games == []:
         raise HTTPException(status_code=404, detail="Ещё нет активных игр!")
@@ -20,18 +21,19 @@ async def get_active_games(
         "active_games": active_games
     }
 
+
 @games.post("/create")
 async def create_game(
     request: CreateGameRequest,
     player_service: PlayerService = Depends(get_player_service),
     game_service: GameService = Depends(get_game_service),
-    game_storage: GameStorage=Depends(get_game_storage)
-    ):
+    game_storage: GameStorage = Depends(get_game_storage)
+):
     game = GameBase(id=uuid4())
     is_players_exist = await player_service.check_room_players_exist(request)
     if not is_players_exist:
         raise HTTPException(status_code=401, detail="Пользователи не найдены!")
-    
+
     room = await game_service.create_game(game, request.player_1, request.player_2, game_storage)
 
     return {
@@ -41,24 +43,25 @@ async def create_game(
         "player_1_board": room.boards[request.player_1.id],
         "player_2_board": room.boards[request.player_2.id]
     }
- 
+
+
 @games.websocket("/{game_sid}/play")
 async def game_play_ws(
     websocket: WebSocket,
     game_sid: UUID,
-    player_id: int = Query(..., alias="player_id"),  
+    player_id: int = Query(..., alias="player_id"),
     game_service: GameService = Depends(get_game_service),
-    game_storage: GameStorage=Depends(get_game_storage),
+    game_storage: GameStorage = Depends(get_game_storage),
     results_service: ResultsService = Depends(get_results_service)
 ) -> None:
-    
+
     player = PlayerBase(id=player_id)
     room = await game_service.check_game_start_conditions(game_sid, game_storage, websocket, player, connection_manager)
     opponent = room.player_2 if player.id == room.player_1.id else room.player_1
     # Если все игроки подключены, то начинаем игру
-    try: 
+    try:
         await game_service.play(room, websocket, player, game_storage, results_service)
-        
+
         await game_service.disconnect_players_from_game(game_sid, player, opponent, connection_manager)
 
     except WebSocketDisconnect:
@@ -66,7 +69,4 @@ async def game_play_ws(
         await connection_manager.broadcast(game_sid, {
             "type": "player_disconnected",
             "player_id": player_id
-        }) 
-
-    
-        
+        })

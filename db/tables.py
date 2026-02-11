@@ -3,7 +3,8 @@ from sqlalchemy import String, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from datetime import datetime
-from uuid import UUID as PyUUID 
+from uuid import UUID as PyUUID
+
 
 class Base(DeclarativeBase):
     pass
@@ -19,19 +20,20 @@ class Players(Base):
     results_as_winner = relationship(
         "Results",
         back_populates="winner",
-        foreign_keys="[Results.winner_id]"         
+        foreign_keys="[Results.winner_id]"
     )
     results_as_surrender = relationship(
         "Results",
         back_populates="surrender",
-        foreign_keys="[Results.surrender_id]"        
-    ) 
+        foreign_keys="[Results.surrender_id]"
+    )
 
- 
+
 class Results(Base):
     __tablename__ = "results"
 
-    game_id: Mapped[PyUUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True)
+    game_id: Mapped[PyUUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True)
     winner_id: Mapped[int] = mapped_column(ForeignKey("players.id"))
     surrender_id: Mapped[int] = mapped_column(ForeignKey("players.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
@@ -40,7 +42,7 @@ class Results(Base):
     winner = relationship(
         "Players",
         back_populates="results_as_winner",
-        foreign_keys=[winner_id]                     
+        foreign_keys=[winner_id]
     )
     surrender = relationship(
         "Players",

@@ -2,9 +2,11 @@ from fastapi import WebSocket
 from uuid import UUID
 from collections import defaultdict
 
+
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: dict[UUID, dict[int, WebSocket]] = defaultdict(dict)
+        self.active_connections: dict[UUID,
+                                      dict[int, WebSocket]] = defaultdict(dict)
 
     async def connect(self, websocket: WebSocket, game_sid: UUID, player_id: int):
         await websocket.accept()
@@ -29,6 +31,4 @@ class ConnectionManager:
                 connections_to_remove.append(player_id)
 
         for player_id in connections_to_remove:
-            self.disconnect(None, game_sid, player_id)  
-
-
+            self.disconnect(None, game_sid, player_id)

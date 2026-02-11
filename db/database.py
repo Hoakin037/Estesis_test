@@ -9,12 +9,13 @@ settings = get_settings()
 
 engine = create_async_engine(
     settings.database_url_asyncpg,
-    pool_pre_ping=True # Проверка активности соединения
+    pool_pre_ping=True  # Проверка активности соединения
 )
 
 async_session_maker = sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
 )
+
 
 async def init_db():
     try:
@@ -23,6 +24,7 @@ async def init_db():
         print("База данных успешно инициализирована")
     except Exception as e:
         print(f"Ошибка при инициализации БД: {e}")
+
 
 async def get_session():
     async with async_session_maker() as session:
