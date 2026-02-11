@@ -1,17 +1,18 @@
 from hashlib import sha256
-from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from db import PlayerRepository, get_player_repository
-from schemas import PlayerBase, PlayerCreate, PlayerAuth
+from db import PlayerRepository, get_player_repository, get_session
+from schemas import PlayerBase, PlayerAuth, PlayerGetByNick
 
-class AuthService():
+class AuthService:
     
-    def __init__(self, player_rep: PlayerRepository):
+    def __init__(self, player_rep: PlayerRepository, session: AsyncSession):
         self.player_rep = player_rep
-    
+        self.session = session
+
     async def authenticate_player(self, player: PlayerAuth):
-        exciting_player = self.player_rep.get_player(PlayerBase(id=player.id))
+        exciting_player = await self.player_rep.get_player_by_nickname(PlayerGetByNick(nickname=player.nickname), self.session)
         if exciting_player == None:
             raise HTTPException(status_code=404, detail=f"Пользователь с id: {player.id} не найден!")
         if await self.verify_password(player.password, exciting_player.password) == True:
@@ -27,5 +28,5 @@ class AuthService():
         return password == hashed_password
     
 
-async def get_auth_service(player_rep: PlayerRepository = Depends(get_player_repository)):
-    return AuthService(player_rep)
+async def get_auth_service(player_rep: PlayerRepository = Depends(get_player_repository), session: AsyncSession = Depends(get_session)):
+    return AuthService(player_rep, session)

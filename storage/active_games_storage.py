@@ -1,24 +1,25 @@
 from typing import Dict
 from schemas import GameRoom, GameBase, GameSetEndedTime
-
+from uuid import UUID
 
 class GameStorage:
     def __init__(self):
-        self.active_games: Dict[str, GameRoom] = {}
+        self.active_games: Dict[UUID, GameRoom] = {}
 
-    def add_game(self, game: GameRoom):
-        self.active_games[game.id] = game
+    async def add_game(self, room: GameRoom):
+        self.active_games[room.id] = room
 
-    def get_game(self, game: GameBase):
+    async def get_game(self, game: GameBase):
         return self.active_games.get(game.id)
 
-    def del_game(self, game: GameBase):
+    async def del_game(self, game: GameBase):
         self.active_games.pop(game.id, None)
-
-    def set_game_ended_time(self, game: GameSetEndedTime):
-       self.active_games[game.id].ended_at = game.ended_at
-       
-    def get_all_games(self):
+      
+    async def get_all_games(self):
         return list(self.active_games.values())
 
 
+active_games_storage = GameStorage()
+
+async def get_game_storage():
+    return active_games_storage

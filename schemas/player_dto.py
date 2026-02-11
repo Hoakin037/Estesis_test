@@ -1,19 +1,14 @@
 from pydantic import BaseModel
-from fastapi import WebSocket
 
 class PlayerBase(BaseModel):
-    id: str 
+    id: int
 
-class PlayerCreate(PlayerBase):
+class PlayerCreate(BaseModel):
     nickname: str
     password: str
 
-class PlayerGetByNick(PlayerBase):
+class PlayerGetByNick(BaseModel):
     nickname: str
 
-class PlayerInGame(PlayerBase):
-    nickname: str
-    websocket: WebSocket
-
-class PlayerAuth(PlayerBase):
+class PlayerAuth(PlayerGetByNick):
     password: str

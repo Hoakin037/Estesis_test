@@ -14,7 +14,7 @@ class PlayerRepository():
         return None      
     
     async def get_player_by_nickname(self, player: PlayerGetByNick, session: AsyncSession):
-        result = session.execute(select(Players).where(Players.nickname==player.nickname))
+        result = await session.execute(select(Players).where(Players.nickname==player.nickname))
         result = result.scalars().first()
         if result != None:
             return result
@@ -22,17 +22,16 @@ class PlayerRepository():
         return None
     
     async def get_all_players(self, session: AsyncSession):
-        results = session.execute(select(Players))
-        return results.scalars.all()
+        results = await session.execute(select(Players))
+        return results.scalars().all()
     
     async def create_player(self, player: PlayerCreate, session: AsyncSession):
-        await session.add(player)
+        session.add(Players(password=player.password, nickname=player.nickname))
         await session.commit()
 
     async def del_player(self, player: PlayerBase, session: AsyncSession):
         await session.delete(player)
         await session.commit()
         
-
 async def get_player_repository():
     return PlayerRepository()

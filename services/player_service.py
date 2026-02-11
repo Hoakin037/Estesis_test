@@ -6,7 +6,7 @@ from storage.active_games_storage import GameStorage
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, Depends
 
-class PlayerService():
+class PlayerService:
     def __init__(self, rep: PlayerRepository, session: AsyncSession):
         self.rep = rep
         self.session = session
@@ -18,11 +18,13 @@ class PlayerService():
         else:
             raise HTTPException(status_code=401, detail="Пользователь не найден!")
     
-
+    async def get_player_by_nickname(self, player: PlayerGetByNick):
+        return await self.rep.get_player_by_nickname(PlayerGetByNick(nickname=player.nickname), self.session)
+    
     async def add_player(self, player: PlayerCreate, auth_service: AuthService):
-        if await self.rep.get_player_by_nickname(PlayerGetByNick(id=player.id, nickname=player.nickname), self.session) != None:
+        if await self.get_player_by_nickname(PlayerGetByNick(nickname=player.nickname)) != None:
             raise HTTPException(status_code=409, detail="Пользователь с таким никнеймом уже существует!")
-        player.password = auth_service.hash_password(player.password)
+        player.password = await auth_service.hash_password(player.password)
 
         await self.rep.create_player(player, self.session)
        
@@ -30,18 +32,18 @@ class PlayerService():
         await self.rep.del_player(player, self.session)
 
     async def get_all_players(self):
-        results = self.rep.get_all_players(self.session)
+        results = await self.rep.get_all_players(self.session)
         if results == []:
             raise HTTPException(status_code=404, detail="Еще нет зарегестрированных игроков.")
+        return results
         
     async def get_free_players(self, game_storage: GameStorage):
-        all_players = self.get_all_players()
-
-        busy_player_ids = []
+        all_players = await self.get_all_players()
+        busy_player_ids = set()
 
         for game in game_storage.active_games.values():
-            busy_player_ids.add(game.player_1.player_id)
-            busy_player_ids.add(game.player_2.player_id)
+            busy_player_ids.add(game.player_1.id)
+            busy_player_ids.add(game.player_2.id)
 
         free_players = [
             {

@@ -23,7 +23,7 @@ def place_ship(board: list[list[int | str]], size: int):
     placed = False
 
     while not placed:
-        direction = choice("H", "V")
+        direction = choice(["H", "V"])
         row = randint(0, 9)
         col = randint(0, 9)
 
