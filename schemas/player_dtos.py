@@ -7,8 +7,8 @@ class PlayerCreate(BaseModel):
     nickname: str
     password: str
 
-class PlayerGetByNick(BaseModel):
+class PlayerGetByNickname(BaseModel):
     nickname: str
 
-class PlayerAuth(PlayerGetByNick):
+class PlayerAuth(PlayerGetByNickname):
     password: str

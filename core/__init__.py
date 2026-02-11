@@ -1,1 +1,1 @@
-from .security import Settings, get_settings
+from .settings import Settings, get_settings

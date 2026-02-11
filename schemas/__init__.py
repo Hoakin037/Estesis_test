@@ -1,2 +1,2 @@
-from .game_results_dto import GameBase, GameRoom, ResultsCreate, ResultsBase, GameSetEndedTime, CreateGameRequest
-from .player_dto import PlayerBase, PlayerCreate, PlayerGetByNick, PlayerAuth
+from .game_results_dtos import GameBase, GameRoom, ResultsCreate, ResultsBase, GameSetEndedTime, CreateGameRequest
+from .player_dtos import PlayerBase, PlayerCreate, PlayerGetByNickname, PlayerAuth

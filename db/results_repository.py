@@ -1,19 +1,19 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from .models import Results
+from .tables import Results
 from schemas import ResultsBase, ResultsCreate, PlayerBase
         
 class ResultsRepository:    
     async def get_result(self, result: ResultsBase, session: AsyncSession):
-        exicting_results = await session.execute(select(Results).where(Results.game_id==result.game_id))
-        exicting_results = exicting_results.scalars().first()
-        return exicting_results
+        existing_results = await session.execute(select(Results).where(Results.game_id==result.game_id))
+        existing_results = existing_results.scalars().first()
+        return existing_results
 
     async def get_all_results(self, session: AsyncSession):
-        exicting_results = await session.execute(select(Results))
-        exicting_results = exicting_results.scalars().all()
-        return exicting_results
+        existing_results = await session.execute(select(Results))
+        existing_results = existing_results.scalars().all()
+        return existing_results
                      
     async def create_result(self, results: ResultsCreate, session: AsyncSession):
         result = Results(

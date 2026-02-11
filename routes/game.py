@@ -1,6 +1,5 @@
 from uuid import uuid4, UUID
 from fastapi import APIRouter, Depends, WebSocket, Query, WebSocketDisconnect, HTTPException
-from asyncio import TimeoutError
 
 from storage.active_games_storage import get_game_storage, GameStorage
 from schemas import CreateGameRequest, GameBase, PlayerBase
@@ -15,6 +14,8 @@ async def get_active_games(
     game_storage: GameStorage=Depends(get_game_storage)
     ):
     active_games = await game_storage.get_all_games()
+    if active_games == []:
+        raise HTTPException(status_code=404, detail="Ещё нет активных игр!")
     return {
         "active_games": active_games
     }
@@ -27,11 +28,12 @@ async def create_game(
     game_storage: GameStorage=Depends(get_game_storage)
     ):
     game = GameBase(id=uuid4())
-    if await player_service.get_player(request.player_1)==None or await player_service.get_player(request.player_1)==None:
+    is_players_exist = await player_service.check_room_players_exist(request)
+    if not is_players_exist:
         raise HTTPException(status_code=401, detail="Пользователи не найдены!")
     
-    room = await game_service.create_room(game, request.player_1, request.player_2)
-    room = await game_service.create_game(room, game_storage)
+    room = await game_service.create_game(game, request.player_1, request.player_2, game_storage)
+
     return {
         "game_sid": room.id,
         "player_1_id": room.player_1.id,
@@ -52,11 +54,12 @@ async def game_play_ws(
     
     player = PlayerBase(id=player_id)
     room = await game_service.check_game_start_conditions(game_sid, game_storage, websocket, player, connection_manager)
-
+    opponent = room.player_2 if player.id == room.player_1.id else room.player_1
     # Если все игроки подключены, то начинаем игру
     try: 
         await game_service.play(room, websocket, player, game_storage, results_service)
-        await websocket.close(code=1000, reason="Игра завершена")
+        
+        await game_service.disconnect_players_from_game(game_sid, player, opponent, connection_manager)
 
     except WebSocketDisconnect:
         await connection_manager.disconnect(websocket, game_sid)

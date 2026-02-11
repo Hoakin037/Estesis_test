@@ -2,7 +2,7 @@ from fastapi import HTTPException, WebSocket, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timezone
 import asyncio
-
+from uuid import UUID
 
 from schemas import GameBase, PlayerBase, GameRoom, ResultsCreate
 from storage.active_games_storage import GameStorage
@@ -15,7 +15,7 @@ class GameService:
     def __init__(self, session: AsyncSession):
         self.session = session
         
-    async def create_room(self, game: GameBase, player_1: PlayerBase, player_2: PlayerBase):
+    async def create_game(self, game: GameBase, player_1: PlayerBase, player_2: PlayerBase, game_storage: GameStorage):
         board_1, board_2 = generate_full_board(), generate_full_board()
         room = GameRoom(
             id=game.id,
@@ -29,16 +29,20 @@ class GameService:
             created_at=datetime.now(timezone.utc)
         )
 
-        return room
-
-    async def create_game(self, room: GameRoom, game_storage: GameStorage):
         await game_storage.add_game(room)
-
         return room
     
     async def shoot(self, room: GameRoom, player: PlayerBase, game_storage: GameStorage, x: int, y: int, websocket: WebSocket):
         if not (0 <= x < 10 and 0 <= y < 10):
-                    await websocket.send_json({"type": "error", "message": "Некорректные координаты"})
+            await websocket.send_json({"type": "error", "message": "Некорректные координаты"})
+            return room
+
+        await self.check_current_player_turn(room, player, websocket, x, y)
+        game_storage.active_games[room.id] = room # обновление доски после хода
+
+        return room 
+    
+    async def check_current_player_turn(self, room: GameRoom, player: PlayerBase, websocket: WebSocket, x: int, y: int):
         if room.current_player_turn==1 and player.id==room.player_1.id:
             room.boards[room.player_2.id], room.current_player_turn = await shoot(room.boards[room.player_2.id], websocket, x, y, room.current_player_turn)
 
@@ -47,16 +51,16 @@ class GameService:
         
         else:
             await websocket.send_json({"type": "error", "message": "Сейчас не ваш ход!"})
+        
+        return
 
-        game_storage.active_games[room.id] = room
-        return room 
-    
     async def check_game_exist(self, game: GameBase,game_storage=GameStorage):
         result = await game_storage.get_game(game)
-        if result != None:
-            return result
-        raise HTTPException(status_code=404, detail=f"Игра с id: {game.id} не найдена!")
-
+        if not result:
+            raise HTTPException(status_code=404, detail=f"Игра с id: {game.id} не найдена!")
+        
+        return result
+    
     async def check_player_in_current_game(self, room: GameRoom, player: PlayerBase):
         if room.player_1.id == player.id or room.player_2.id == player.id:
             return True
@@ -83,7 +87,7 @@ class GameService:
                         "type": "error",
                         "message": "Превышено время ожидания подключения оппонента."
                     })
-                    raise asyncio.TimeoutError("Opponent did not connect in time")
+                    raise asyncio.TimeoutError("Время ожидания противника превышено.")
 
                 await asyncio.sleep(0.5)
 
@@ -135,25 +139,22 @@ class GameService:
     async def play(self, room: GameRoom, websocket: WebSocket, player: PlayerBase, game_storage: GameStorage, results_service: ResultsService):
         await self.send_play_message(room, websocket)
         while True:
-            message = await websocket.receive_json()
-            msg_type = message.get("type")
+            client_message = await websocket.receive_json()
+            message_type = client_message.get("type")
             
-            if msg_type == "ping":
-                await websocket.send_json({"type": "pong"})
-                continue
-                
-            if msg_type == "shoot":
-                x, y = message.get("x"), message.get("y")
+            if message_type == "shoot":
+                x, y = client_message.get("x"), client_message.get("y")
                 room = await self.shoot(room, player, game_storage, x, y, websocket)
                 await self.send_play_message(room, websocket)
-                game_over = await self.check_game_over(room, game_storage, websocket, results_service, player)
-                if game_over:
+                is_game_over = await self.check_game_over(room, game_storage, websocket, results_service, player)
+                if is_game_over:
+
                     return 
 
     async def check_game_start_conditions(self, game_sid: str, game_storage: GameStorage, websocket: WebSocket, player: PlayerBase, connection_manager):
         room = await self.check_game_exist(GameBase(id=game_sid), game_storage)
 
-        await connection_manager.connect(websocket, game_sid)
+        await connection_manager.connect(websocket, game_sid, player.id)
         
         opponent_id = room.player_2.id if player.id == room.player_1.id else room.player_1.id
 
@@ -169,6 +170,18 @@ class GameService:
             return
         
         return room
+
+    async def disconnect_players_from_game(self, game_sid: UUID, player: PlayerBase, opponent: PlayerBase, connection_manager):
+        current_ws = connection_manager.get_websocket(game_sid, player.id)
+        opponent_ws = connection_manager.get_websocket(game_sid, opponent.id)
+
+        if current_ws:
+            await current_ws.close(code=1000, reason="Игра завершена")
+        if opponent_ws and opponent_ws != current_ws:
+            await opponent_ws.close(code=1000, reason="Игра завершена")
+
+        connection_manager.disconnect(current_ws, game_sid, player.id)
+        connection_manager.disconnect(opponent_ws, game_sid, opponent.id)
 
 async def get_game_service(session: AsyncSession = Depends(get_session)):
     return GameService(session)

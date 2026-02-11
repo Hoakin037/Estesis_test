@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from uuid import UUID
 
-from .player_dto import PlayerBase
+from .player_dtos import PlayerBase
 
 class GameBase(BaseModel):
     id: UUID

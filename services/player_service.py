@@ -1,5 +1,5 @@
 from db import get_player_repository, get_session, PlayerRepository
-from schemas import PlayerBase, PlayerCreate, PlayerGetByNick
+from schemas import PlayerBase, PlayerCreate, PlayerGetByNickname, CreateGameRequest
 from services import AuthService
 from storage.active_games_storage import GameStorage
 
@@ -11,6 +11,13 @@ class PlayerService:
         self.rep = rep
         self.session = session
 
+    async def check_room_players_exist(self, request: CreateGameRequest) -> bool:
+        player_1 = await self.get_player(request.player_1)
+        player_2 = await self.get_player(request.player_2)
+        if player_1 and player_2:
+            return True
+        return False
+    
     async def get_player(self, player: PlayerBase):
         result = await self.rep.get_player(player, self.session)
         if result != None:
@@ -18,11 +25,11 @@ class PlayerService:
         else:
             raise HTTPException(status_code=401, detail="Пользователь не найден!")
     
-    async def get_player_by_nickname(self, player: PlayerGetByNick):
-        return await self.rep.get_player_by_nickname(PlayerGetByNick(nickname=player.nickname), self.session)
+    async def get_player_by_nickname(self, player: PlayerGetByNickname):
+        return await self.rep.get_player_by_nickname(PlayerGetByNickname(nickname=player.nickname), self.session)
     
     async def add_player(self, player: PlayerCreate, auth_service: AuthService):
-        if await self.get_player_by_nickname(PlayerGetByNick(nickname=player.nickname)) != None:
+        if await self.get_player_by_nickname(PlayerGetByNickname(nickname=player.nickname)) != None:
             raise HTTPException(status_code=409, detail="Пользователь с таким никнеймом уже существует!")
         player.password = await auth_service.hash_password(player.password)
 
@@ -37,7 +44,7 @@ class PlayerService:
             raise HTTPException(status_code=404, detail="Еще нет зарегестрированных игроков.")
         return results
         
-    async def get_free_players(self, game_storage: GameStorage):
+    async def get_inactive_players(self, game_storage: GameStorage):
         all_players = await self.get_all_players()
         busy_player_ids = set()
 
@@ -45,16 +52,16 @@ class PlayerService:
             busy_player_ids.add(game.player_1.id)
             busy_player_ids.add(game.player_2.id)
 
-        free_players = [
+        inactive_players = [
             {
                 "id": p.id,
                 "nickname": p.nickname,
             }
-            for p in all_players
-            if p.id not in busy_player_ids
+            for p in all_players if p.id not in busy_player_ids
         ]
 
-        return free_players
+        return inactive_players
+    
         
 async def get_player_service(
     rep: PlayerRepository = Depends(get_player_repository),

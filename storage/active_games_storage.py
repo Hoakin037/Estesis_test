@@ -1,5 +1,5 @@
 from typing import Dict
-from schemas import GameRoom, GameBase, GameSetEndedTime
+from schemas import GameRoom, GameBase
 from uuid import UUID
 
 class GameStorage:
